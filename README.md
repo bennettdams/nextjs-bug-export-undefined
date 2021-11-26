@@ -1,34 +1,120 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Reproduction repo for [a Next.js bug](https://github.com/vercel/next.js/issues/31855)
 
-## Getting Started
+Exported members that are used in SSR/SSG/ISG page function are undefined on the client (`Attempted import error: '..' is not exported from '..' (imported as '..')`). 
 
-First, run the development server:
 
-```bash
-npm run dev
-# or
-yarn dev
+When you export a member that is used in the page function of `getStaticProps`, it will be `undefined` on the client.
+
+For example:
+
+```ts
+// pages/index.tsx
+export const revalidateInSeconds = 5 * 60;
+
+export const getStaticProps: GetStaticProps = async () => {
+  return {
+    props: {},
+    revalidate: revalidateInSeconds,
+  };
+};
+
+// components/TestComponent.tsx
+import { revalidateInSeconds } from "../pages";
+
+export function TestComponent(): JSX.Element {
+  console.log("revalidateInSeconds: ", revalidateInSeconds);
+  return <p>Test component</p>;
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+## To Reproduce
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+### ..use this reproduction repo
 
-## Learn More
+1. `npm i`
+2. `npm run build`
+3. `npm run start`
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### OR
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+### ..manually execute
 
-## Deploy on Vercel
+1. [Create Next.js app](https://github.com/bennettdams/nextjs-bug-export-undefined/commit/0c812c6fcc7f86a6d49b6c51c94669fc0574b48e): `npx create-next-app@latest --use-npm --ts .`
+2. [Add `getStaticProps` and a `const` to export](https://github.com/bennettdams/nextjs-bug-export-undefined/commit/851a9b4e12699c505dc82cc0c587b9abdf3160c6):
+```tsx
+export const revalidateInSeconds = 5 * 60;
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+export const getStaticProps: GetStaticProps = async () => {
+  return {
+    props: {},
+    revalidate: revalidateInSeconds,
+  };
+};
+```
+3. [Add a test component](https://github.com/bennettdams/nextjs-bug-export-undefined/commit/65064110c06af6b6ef20aa08a1e6f49078af45d4) that logs the imported `const` (`revalidateInSeconds`) and use the component on the page:
+```tsx
+// components/TestComponent.tsx
+import { revalidateInSeconds } from "../pages";
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+export function TestComponent(): JSX.Element {
+  console.log("revalidateInSeconds: ", revalidateInSeconds);
+  return <p>Test component</p>;
+}
+
+// pages/index.ts
+...
+  <main className={styles.main}>
+        <TestComponent />
+
+        <h1 className={styles.title}>
+          Welcome to <a href="https://nextjs.org">Next.js!</a>
+...
+```
+4. Build & start the app: `npm run build` & `npm run start`
+
+
+# Results, looking at the console logs
+
+### Terminal that is used for building:
+
+
+<details>
+  <summary>Click for text!</summary>
+  
+```
+> next build
+
+info  - Checking validity of types  
+info  - Creating an optimized production build  
+warn  - Compiled with warnings
+
+./components/TestComponent.tsx
+Attempted import error: 'revalidateInSeconds' is not exported from '../pages' (imported as 'revalidateInSeconds').
+
+Import trace for requested module:
+./pages/index.tsx
+
+info  - Collecting page data  
+```
+</details>
+
+![image](https://user-images.githubusercontent.com/29319414/143610743-84ce34ea-8ccd-4791-a30b-d765729306c3.png)
+
+### Browser:
+
+![image](https://user-images.githubusercontent.com/29319414/143609672-ac97e487-9700-4285-b1d0-abd36223a28e.png)
+
+---
+
+## Additional information:
+
+- When you run `npm run dev` instead of using the build, you can see that the `console.log` on the server actually has the value, instead of being `undefined`:
+![image](https://user-images.githubusercontent.com/29319414/143610000-42fd9e87-2278-42aa-8303-691cc41f3b51.png)
+Just on the client it is still `undefined`.
+
+- I checked this behavior also for Next.js `v11.1.2` - there, it is not happening. The variable has its value on the client as expected.
+
+
