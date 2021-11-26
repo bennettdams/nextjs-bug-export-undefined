@@ -1,6 +1,7 @@
 import type { GetStaticProps, NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
+import { TestComponent } from "../components/TestComponent";
 import styles from "../styles/Home.module.css";
 
 export const revalidateInSeconds = 5 * 60;
@@ -22,6 +23,7 @@ const Home: NextPage = () => {
       </Head>
 
       <main className={styles.main}>
+        <TestComponent />
         <h1 className={styles.title}>
           Welcome to <a href="https://nextjs.org">Next.js!</a>
         </h1>
