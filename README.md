@@ -27,7 +27,14 @@ export function TestComponent(): JSX.Element {
 }
 ```
 
+## Setup
 
+To make sure that the OS has no play in testing this out, I added a [VS Code Docker development container](https://code.visualstudio.com/docs/remote/containers) based on Linux (Debian). With that, even if you don't have Linux, the error can be reproduced.
+
+To test this out:
+- In VS Code, install the [Remote Development extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack)
+- Open the repo in VS Code and start the container (popup at the bottom right or via command palette: `Remote-Containers: Rebuild and Repoen in Container`)
+- VS Code should restart and be inside the container afterwards
 
 ## To Reproduce
 
